@@ -20,6 +20,11 @@ public class Packet {
         packet = new byte[PACKET_MAX];
 
     }
+    
+    //For client recieving use
+    public Packet(byte[] data){
+    	packet = data;
+    }
 
     public Packet(byte[] segment, int seqNum) {
 
