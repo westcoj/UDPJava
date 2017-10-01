@@ -2,6 +2,7 @@ import java.io.*;
 import java.net.*;
 import java.nio.*;
 import java.nio.channels.*;
+import java.nio.file.Files;
 
 class UdpServer {
 	public static void main(String args[]) {
@@ -25,7 +26,7 @@ class UdpServer {
 
 			while (true) {
 				Console cons = System.console();
-				String m = "100"; //cons.readLine("Enter port number: ");
+				String m = "5000"; //cons.readLine("Enter port number: ");
 				if (m.matches("[0-9]+")) {
 					port = Integer.parseInt(m);
 				} else if (m.equals("exit")) {
@@ -44,7 +45,9 @@ class UdpServer {
 			}
 
 			while (true) {
-				// SocketChannel sc = c.accept();
+				//SocketChannel sc = c.accept();
+
+				System.out.println("Awaiting file request");
 				int fileSize = 0;
 				// buffer to get client's command
 				ByteBuffer messageBuffer = ByteBuffer.allocate(1028);
@@ -65,7 +68,7 @@ class UdpServer {
 				else {
 
 					try {
-						file = new File("C:\\server\\" + message2);
+						file = new File(message2);
 						fileSt = new FileInputStream(file);
 						inputS = new BufferedInputStream(fileSt);
 					}
@@ -76,8 +79,9 @@ class UdpServer {
 					}
 
 				} // Got file
-
+				byte[] test = Files.readAllBytes(file.toPath());
 				int numPackets = (int) Math.ceil((double) file.length() / 1024);
+				System.out.println("File size: " + test.length);
 				window = new Window(5, numPackets);
 				int seqNumber = 0;
 				int clientAck = 0;

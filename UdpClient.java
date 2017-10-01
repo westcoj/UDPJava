@@ -13,10 +13,10 @@ class UdpClient {
 			Console cons = System.console();
 			BufferedOutputStream outputS = null;
 			FileOutputStream fileSt = null;
-			Window window = new Window(5,0);
+			//Window window = new Window(5,0);
 			Packet packet;
 			String IP = "127.0.0.1";//cons.readLine("Enter IP: ");
-			String portS = "100";//cons.readLine("Enter port: ");
+			String portS = "5000";//cons.readLine("Enter port: ");
 			int port;
 
 			//Getting port;
@@ -36,8 +36,9 @@ class UdpClient {
 				m = null;
 				m = ("test.txt");//cons.readLine("Enter file request ");
 				ByteBuffer buf = ByteBuffer.wrap(m.getBytes());
-				sc.send(buf, new InetSocketAddress(IP, port));
-				
+				InetSocketAddress server = new InetSocketAddress(IP, port);
+				sc.send(buf, server);
+				System.out.println("Requesting file: " + m);
 
 				
 				//Recieve filesize
@@ -53,14 +54,29 @@ class UdpClient {
 				//Possible to read as we go, but would mean only accepting the next seq packet
 				//in the series, rather than any in the window.
 				byte[][] fileBuilder = new byte[numPackets][1024];
-				
+
+				Window window = new Window(5,numPackets);
+				int lastBytes = (int) fileSize % 1024;
+				int seqNum = 0;
 				//Start recieving
-				while(bytesRead!=fileSize){
-					byte[] fileBytes = new byte[1028];
-					DatagramPacket dgPacket = new DatagramPacket(fileBytes,1028);
+				while(bytesRead < fileSize){
+
+					//byte[] fileBytes = new byte[1028];
+					DatagramPacket dgPacket;
+					byte[] fileBytes;
+					if (fileSize - bytesRead < 1024){
+						fileBytes = new byte[lastBytes];
+						dgPacket = new DatagramPacket(fileBytes, lastBytes + 4);
+					}
+					else {
+						fileBytes = new byte[1028];
+						dgPacket = new DatagramPacket(fileBytes,1028);
+					}
+
+
 					ds.receive(dgPacket);
 					packet = new Packet(dgPacket.getData());
-					int seqNum = packet.getSeqNum();
+					seqNum = packet.getSeqNum();
 					
 					//Is packet recieved in window?
 					if(window.WindowApprove(seqNum)){
@@ -79,14 +95,19 @@ class UdpClient {
 					window.WindowCleaner();
 					byte[] sendAckBytes = Integer.toString(seqNum).getBytes();
 					int sendAckBytesLen = sendAckBytes.length;
-					System.out.print(String.valueOf(sendAckBytesLen));
-					DatagramPacket ackSend = new DatagramPacket(sendAckBytes,sendAckBytes.length);
+					System.out.println(String.valueOf(sendAckBytesLen));
+					DatagramPacket ackSend = new DatagramPacket(
+							sendAckBytes,
+							sendAckBytes.length,
+							InetAddress.getByName("127.0.0.1"),
+							5000);
+					System.out.println(ackSend.getAddress());
 					ds.send(ackSend);
 					
 					
 				}//Stop recieving file
 				
-				File file = new File("C:\\client\\test.txt");
+				File file = new File("out.txt");
 				fileSt = new FileOutputStream(file);
 				outputS = new BufferedOutputStream(fileSt);
 				int k = 0;

@@ -9,13 +9,15 @@ public class Window {
 	// set up window
 	public Window(int size, int totalSlots) {
 		this.size = size;
-		slotNumber = size;
+		slotNumber = -1;
+		//slotNumber = size;
 		window = new ArrayList<Integer>(size);
 		slots = new int[totalSlots];
 		for (int i = 0; i < slots.length; i++) {
 			slots[i] = i;
 			if (i < 5) {
 				window.add(i, i);
+				slotNumber++;
 			}
 		}
 	}
@@ -24,9 +26,10 @@ public class Window {
 	public void WindowCleaner() {
 		if (!window.isEmpty()) {
 			for (int i = 0; i < window.size(); i++) {
-				if (window.get(i) == -1) {
+				if (window.get(i) == -1 && slotNumber < slots.length) {
 					window.remove(i);
-					window.add(slots[slotNumber++]);
+					window.add(slots[slotNumber]);
+					slotNumber++;
 				}
 
 				// runs into non -1 value (UnAcknowledged slot)
