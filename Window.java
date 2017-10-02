@@ -9,7 +9,7 @@ public class Window {
 	// set up window
 	public Window(int size, int totalSlots) {
 		this.size = size;
-		slotNumber = -1;
+		slotNumber = 0;
 		//slotNumber = size;
 		window = new ArrayList<Integer>(size);
 		slots = new int[totalSlots];
@@ -20,6 +20,14 @@ public class Window {
 				slotNumber++;
 			}
 		}
+	}
+
+	public String toString(){
+		String str = "";
+		for (int i = 0; i < slots.length; ++i){
+			str += Integer.toString(slots[i]);
+		}
+		return new String(window.toString() + "\n" + str);
 	}
 
 	// removes all -1 slots from window and adds new ones

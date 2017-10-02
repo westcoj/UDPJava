@@ -109,6 +109,12 @@ public class Packet {
         return packets;
     }
 
+    public String toString(){
+        String str = new String(packet);
+
+        return str;
+    }
+
     public static void main(String[] args) {
 
         byte[] thing = new byte[1024];

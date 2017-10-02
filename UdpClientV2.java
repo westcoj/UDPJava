@@ -80,12 +80,12 @@ public class UdpClientV2 {
 
                 if (fileSize - bytesRead < 1024){
                     fileBytes = new byte[finalPacketSize];
-                    dgPacket = new DatagramPacket(fileBytes, finalPacketSize + 4);
+                    dgPacket = new DatagramPacket(fileBytes, finalPacketSize);
                 }
 
                 else {
-                    fileBytes = new byte[1028];
-                    dgPacket = new DatagramPacket(fileBytes,1028);
+                    fileBytes = new byte[PACKET_SIZE];
+                    dgPacket = new DatagramPacket(fileBytes,PACKET_SIZE);
                 }
 
 
@@ -93,34 +93,40 @@ public class UdpClientV2 {
                 packet = new Packet(dgPacket.getData());
                 seqNum = packet.getSeqNum();
 
+                System.out.println("Sequence number" + packet.getSeqNum());
                 System.out.println(packet.toString());
-                System.out.println(packet.getSeqNum());
                 //Is packet recieved in window?
+
                 if(window.WindowApprove(seqNum)){
-                    fileBuilder[seqNum] = packet.getBytes();
+                    fileBuilder[seqNum] = packet.getData();
                     bytesRead += 1024;
                     window.WindowSlotCheck(seqNum);
                 }
 
                 //Last packet handler
                 else if(seqNum==-2){
-                    fileBuilder[numPackets-1] = packet.getBytes();
+                    fileBuilder[numPackets-1] = packet.getData();
                     bytesRead = fileSize;
                 }
 
                 //Check slots for recieved items
                 window.WindowCleaner();
+
                 byte[] sendAckBytes = Integer.toString(seqNum).getBytes();
                 int sendAckBytesLen = sendAckBytes.length;
-                System.out.println(String.valueOf(sendAckBytesLen));
+
+                System.out.println("Acknowledging packet " + Integer.toString(seqNum));
+                System.out.println(window);
+
                 DatagramPacket ackSend = new DatagramPacket(
                         sendAckBytes,
-                        sendAckBytes.length,
+                        sendAckBytesLen,
                         InetAddress.getByName("127.0.0.1"),
                         5000);
                 //System.out.println(ackSend.getAddress());
-                dataSocket.send(ackSend);
 
+
+                dataSocket.send(ackSend);
 
             }//Stop recieving file
 
@@ -132,6 +138,8 @@ public class UdpClientV2 {
                 outputS.write(fileBuilder[k]);
                 k++;
             }
+
+            System.out.println("FIle successfully written");
 
             outputS.close();
             fileSt.close();

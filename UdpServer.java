@@ -150,7 +150,9 @@ class UdpServer {
 					}
 					
 					clientAck = ByteBuffer.wrap(clientBytes).getInt();
-					System.out.println("Recieved Acknowledgement: " + String.valueOf(clientAck));
+					String ack = new String(ByteBuffer.wrap(clientBytes).array()).trim();
+					//Integer.parseInt(new String(clientAck.array()).trim());
+					System.out.println("Recieved Acknowledgement: " + ack);
 					window.WindowSlotCheck(clientAck);
 					window.WindowCleaner();
 
