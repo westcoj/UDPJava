@@ -15,7 +15,8 @@ public class UdpClientV2 {
     DatagramSocket dataSocket;
     BufferedOutputStream outputS = null;
     FileOutputStream fileSt = null;
-    String IP;
+    Console cons;
+    String ip;
     String portS;
     int port;
     final int PACKET_SIZE = 1028;
@@ -24,11 +25,13 @@ public class UdpClientV2 {
 
         dataChannel = DatagramChannel.open();
         dataSocket = dataChannel.socket();
-        portS = "5000";
-        IP = "127.0.0.1";
+	cons = System.console();
 
         while (true) {
-
+	    
+	    ip = cons.readLine("Enter IP Address (x.x.x.x,args): ");
+	    portS = cons.readLine("Enter port number: ");
+	    port = Integer.parseInt(portS);
             if (portS.matches("[0-9]+")) {
                 port = Integer.parseInt(portS);
                 break;
@@ -46,9 +49,9 @@ public class UdpClientV2 {
             Packet packet = new Packet();
 
             //First request
-            fileName = ("test.txt");//cons.readLine("Enter file request ");
+            fileName = cons.readLine("Enter file request ");
             ByteBuffer buf = ByteBuffer.wrap(fileName.getBytes());
-            InetSocketAddress server = new InetSocketAddress(IP, port);
+            InetSocketAddress server = new InetSocketAddress(ip, port);
             dataChannel.send(buf, server);
             System.out.println("Requesting file: " + fileName);
 
@@ -94,7 +97,7 @@ public class UdpClientV2 {
                 seqNum = packet.getSeqNum();
 
                 System.out.println("Sequence number" + packet.getSeqNum());
-                System.out.println(packet.toString());
+                //System.out.println(packet.toString());
                 //Is packet recieved in window?
 
                 if(window.WindowApprove(seqNum)){
@@ -116,13 +119,13 @@ public class UdpClientV2 {
                 int sendAckBytesLen = sendAckBytes.length;
 
                 System.out.println("Acknowledging packet " + Integer.toString(seqNum));
-                System.out.println(window);
+		// System.out.println(window);
 
                 DatagramPacket ackSend = new DatagramPacket(
                         sendAckBytes,
                         sendAckBytesLen,
                         InetAddress.getByName("127.0.0.1"),
-                        5000);
+					      port);
                 //System.out.println(ackSend.getAddress());
 
 
@@ -130,7 +133,7 @@ public class UdpClientV2 {
 
             }//Stop recieving file
 
-            File file = new File("out.txt");
+            File file = new File("/home/westco/net/client/" + fileName);
             fileSt = new FileOutputStream(file);
             outputS = new BufferedOutputStream(fileSt);
             int k = 0;

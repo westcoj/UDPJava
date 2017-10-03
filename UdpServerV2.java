@@ -4,6 +4,7 @@ import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.file.Files;
+import java.io.Console;
 
 
 /**
@@ -14,6 +15,7 @@ public class UdpServerV2 {
     private DatagramChannel dataChannel;
     private DatagramSocket dataSocket;
     private Window window;
+    Console cons;
 
 
     public UdpServerV2() throws IOException {
@@ -21,39 +23,39 @@ public class UdpServerV2 {
         dataChannel = DatagramChannel.open();
         dataSocket = dataChannel.socket();
         dataSocket.setSoTimeout(100);
+	cons = System.console();
 
 
     }
 
     public boolean connect() {
 
-        int port = 0;
-        String portStr = "5000";
-
-
+	while(true){
         try {
-            //while (true) {
+            while (true) {
 
             //parsing/validating port input
-            //Console cons = System.console;
-            if (portStr.matches("[0-9]+")) {
-                port = Integer.parseInt(portStr);
-            } else if (portStr.equals("exit")) {
+	    String portS = cons.readLine("Enter port number: ");
+	    int  port = Integer.parseInt(portS);
+            if (portS.matches("[0-9]+")) {
+                port = Integer.parseInt(portS);
+            } else if (portS.equals("exit")) {
                 System.exit(0);
             } else {
-                //continue;
+                continue;
             }
 
             dataSocket.bind(new InetSocketAddress(port));
+	    return true;
 
 
-            //}
+            }
 
-            return true;
         } catch (Exception e) {
             e.printStackTrace();
-            return false;
+            continue;
         }
+	}
 
     }
 
@@ -90,7 +92,7 @@ public class UdpServerV2 {
                 System.out.println("Client Request: " + request);
 
 
-                file = new File(request);
+                file = new File("/home/westco/net/server/" + request);
                 fileSt = new FileInputStream(file);
                 inputS = new BufferedInputStream(fileSt);
 
@@ -181,16 +183,19 @@ public class UdpServerV2 {
                     clientPacket = new DatagramPacket(clientBytes, 4);
                     try {
                         dataSocket.receive(clientPacket);
+			
                     } catch (SocketTimeoutException e) {
                         //No packet to recieve now
                         continue;
                     }
 
-                    clientAck = ByteBuffer.wrap(clientBytes).getInt();
-                    String ack = new String(ByteBuffer.wrap(clientBytes).array()).trim();
-                    System.out.println("Recieved Acknowledgement: " + ack);
-                    window.WindowSlotCheck(clientAck);
-                    window.WindowCleaner();
+		    String ack = new String(ByteBuffer.wrap(clientBytes).array()).trim();
+			clientAck = Integer.parseInt(ack);
+			System.out.println("Recieved Acknowledgement: " + ack);
+			window.WindowSlotCheck(clientAck);
+			window.WindowCleaner();
+
+                    
 
                 } //End of file sending loop
 
