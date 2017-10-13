@@ -3,6 +3,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 
@@ -58,7 +59,7 @@ public class UdpClientV2 {
 
             //Recieve filesize
             ByteBuffer buf2 = ByteBuffer.allocate(1024);
-            dataChannel.receive(buf2);
+            SocketAddress resendAdr = dataChannel.receive(buf2);
             String message = new String(buf2.array()).trim();
             long fileSize = Long.parseLong(message);
             int numPackets = (int) Math.ceil((double) fileSize / 1024);
@@ -92,25 +93,39 @@ public class UdpClientV2 {
                 }
 
 
-                dataSocket.receive(dgPacket);
-                packet = new Packet(dgPacket.getData());
-                seqNum = packet.getSeqNum();
+                //dataSocket.receive(dgPacket);
+		// packet = new Packet(dgPacket.getData());
+                //seqNum = packet.getSeqNum();
+		try{
+		    
+		     dataSocket.receive(dgPacket);
+		     packet = new Packet(dgPacket.getData());
+		     seqNum = packet.getSeqNum();
+		     String seqNumS = Integer.toString(seqNum);
 
-                System.out.println("Sequence number" + packet.getSeqNum());
+		    if(window.WindowApprove(seqNum)){
+			fileBuilder[seqNum] = packet.getData();
+			bytesRead += 1024;
+			window.WindowSlotCheck(seqNum);
+		    }
+
+		    //Last packet handler
+		    else if(seqNum==-2){
+			fileBuilder[numPackets-1] = packet.getData();
+			bytesRead = fileSize;
+		    }
+		}
+
+		catch(Exception e){
+		    System.out.println("Packet grab error");
+		    continue;
+		}
+
+                System.out.println("Sequence number " + packet.getSeqNum());
                 //System.out.println(packet.toString());
                 //Is packet recieved in window?
 
-                if(window.WindowApprove(seqNum)){
-                    fileBuilder[seqNum] = packet.getData();
-                    bytesRead += 1024;
-                    window.WindowSlotCheck(seqNum);
-                }
-
-                //Last packet handler
-                else if(seqNum==-2){
-                    fileBuilder[numPackets-1] = packet.getData();
-                    bytesRead = fileSize;
-                }
+              
 
                 //Check slots for recieved items
                 window.WindowCleaner();
@@ -124,8 +139,8 @@ public class UdpClientV2 {
                 DatagramPacket ackSend = new DatagramPacket(
                         sendAckBytes,
                         sendAckBytesLen,
-                        InetAddress.getByName("127.0.0.1"),
-					      port);
+                        resendAdr
+					      );
                 //System.out.println(ackSend.getAddress());
 
 
@@ -133,7 +148,7 @@ public class UdpClientV2 {
 
             }//Stop recieving file
 
-            File file = new File("/home/westco/net/client/" + fileName);
+            File file = new File("/home/mininet/net/client/" + fileName);
             fileSt = new FileOutputStream(file);
             outputS = new BufferedOutputStream(fileSt);
             int k = 0;

@@ -92,7 +92,7 @@ public class UdpServerV2 {
                 System.out.println("Client Request: " + request);
 
 
-                file = new File("/home/westco/net/server/" + request);
+                file = new File("/home/mininet/net/server/" + request);
                 fileSt = new FileInputStream(file);
                 inputS = new BufferedInputStream(fileSt);
 
@@ -150,7 +150,8 @@ public class UdpServerV2 {
 
                         dgPacket = new DatagramPacket(packet.getBytes(), packetSize + 4, resendAdr);
                         dataSocket.send(dgPacket);
-                        window.WindowSlotCheck(seqNumber);
+			System.out.println("Sending Packet: " + Integer.toString(seqNumber));
+                        //window.WindowSlotCheck(seqNumber);
                         seqNumber++;
                     }
 
@@ -181,11 +182,13 @@ public class UdpServerV2 {
                     //Recieve packet from client, runs on timeout
                     clientBytes = new byte[4];
                     clientPacket = new DatagramPacket(clientBytes, 4);
+
                     try {
                         dataSocket.receive(clientPacket);
 			
                     } catch (SocketTimeoutException e) {
                         //No packet to recieve now
+			System.out.println("Packet Timeout");
                         continue;
                     }
 
