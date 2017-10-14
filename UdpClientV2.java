@@ -6,6 +6,7 @@ import java.net.InetSocketAddress;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
+import java.util.Scanner;
 
 /**
  * Created by pieterholleman on 10/1/17.
@@ -29,9 +30,13 @@ public class UdpClientV2 {
 	cons = System.console();
 
         while (true) {
-	    
-	    ip = cons.readLine("Enter IP Address (x.x.x.x,args): ");
-	    portS = cons.readLine("Enter port number: ");
+	    Scanner scanner = new Scanner(System.in);
+	    //System.out.print("Enter an ip address: ");
+	    ip = "127.0.0.1";
+	    //System.out.print("Enter a port #: ");
+	    portS = "1052";
+	    //ip = cons.readLine("Enter IP Address (x.x.x.x,args): ");
+	    //portS = cons.readLine("Enter port number: ");
 	    port = Integer.parseInt(portS);
             if (portS.matches("[0-9]+")) {
                 port = Integer.parseInt(portS);
@@ -44,15 +49,20 @@ public class UdpClientV2 {
     public void requestFile() throws IOException {
 
         String fileName = "";
+        Scanner scanner = new Scanner(System.in);
+        fileName = scanner.nextLine();
 
         while (true) {
 
             Packet packet = new Packet();
 
             //First request
-            fileName = "hey man.png"; //cons.readLine("Enter file request ");
+
+
+            //fileName = "hey man.png"; //cons.readLine("Enter file request ");
             ByteBuffer buf = ByteBuffer.wrap(fileName.getBytes());
             InetSocketAddress server = new InetSocketAddress(ip, port);
+            System.out.println("Connected");
             dataChannel.send(buf, server);
             System.out.println("Requesting file: " + fileName);
 
@@ -62,6 +72,7 @@ public class UdpClientV2 {
             SocketAddress resendAdr = dataChannel.receive(buf2);
             String message = new String(buf2.array()).trim();
             long fileSize = Long.parseLong(message);
+            System.out.println("File size: " + Long.toString(fileSize));
             int numPackets = (int) Math.ceil((double) fileSize / 1024);
             long bytesRead = 0;
             System.out.println(String.valueOf(numPackets));
@@ -149,7 +160,7 @@ public class UdpClientV2 {
             }//Stop recieving file
 
             //File file = new File("/home/mininet/net/client/" + fileName);
-            File file = new File("E:\\client\\" + fileName);
+            File file = new File("out.jpg");
             fileSt = new FileOutputStream(file);
             outputS = new BufferedOutputStream(fileSt);
             int k = 0;

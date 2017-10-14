@@ -86,7 +86,7 @@ public class UdpServerV2 {
 				System.out.println("Client Request: " + request);
 
 				//file = new File("/home/mininet/net/server/" + request);
-				file = new File("E:\\server\\" + request);
+				file = new File(request);
 				fileSt = new FileInputStream(file);
 				inputS = new BufferedInputStream(fileSt);
 
