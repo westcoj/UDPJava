@@ -50,7 +50,7 @@ public class UdpClientV2 {
             Packet packet = new Packet();
 
             //First request
-            fileName = cons.readLine("Enter file request ");
+            fileName = "hey man.png"; //cons.readLine("Enter file request ");
             ByteBuffer buf = ByteBuffer.wrap(fileName.getBytes());
             InetSocketAddress server = new InetSocketAddress(ip, port);
             dataChannel.send(buf, server);
@@ -148,7 +148,8 @@ public class UdpClientV2 {
 
             }//Stop recieving file
 
-            File file = new File("/home/mininet/net/client/" + fileName);
+            //File file = new File("/home/mininet/net/client/" + fileName);
+            File file = new File("E:\\client\\" + fileName);
             fileSt = new FileOutputStream(file);
             outputS = new BufferedOutputStream(fileSt);
             int k = 0;
