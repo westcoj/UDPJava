@@ -25,6 +25,18 @@ public class UdpServerV2 {
 
 	}
 
+	public boolean connect(int port){
+
+		try {
+			dataSocket.bind(new InetSocketAddress(port));
+			return true;
+		} catch(Exception e) {
+
+			e.printStackTrace();
+			return false;
+		}
+	}
+
 	public boolean connect() {
 
 		while (true) {
@@ -32,7 +44,7 @@ public class UdpServerV2 {
 				while (true) {
 
 					// parsing/validating port input
-					String portS ="1052"; //cons.readLine("Enter port number: ");
+					String portS =""; //cons.readLine("Enter port number: ");
 					int port = Integer.parseInt(portS);
 					if (portS.matches("[0-9]+")) {
 						port = Integer.parseInt(portS);
@@ -88,7 +100,8 @@ public class UdpServerV2 {
 				System.out.println("Client Request: " + request);
 
 				//file = new File("/home/mininet/net/server/" + request);
-				file = new File("E:\\server\\" + request);
+				//file = new File("E:\\server\\" + request);
+				file = new File(request);
 				fileSt = new FileInputStream(file);
 				inputS = new BufferedInputStream(fileSt);
 
@@ -122,9 +135,10 @@ public class UdpServerV2 {
 							inputS.read(bytes, 0, packetSize);
 							fileBuilder[seqNumber] = bytes;
 							packet = new Packet(bytes, seqNumber);
+
 						}
 
-						// System.out.println(packet.toString());
+                        //System.out.println(packet.toString());
 						// bytes = new byte[packetSize];
 						// //Reads 1024 bytes into array, should mark position
 						// when this occurs multiple times
@@ -143,7 +157,7 @@ public class UdpServerV2 {
 						// packet = new Packet(bytes, seqNumber);
 						// }
 
-						dgPacket = new DatagramPacket(packet.getBytes(), packetSize + 4, resendAdr);
+						dgPacket = new DatagramPacket(packet.getBytes(), packetSize, resendAdr);
 						dataSocket.send(dgPacket);
 						System.out.println("Sending Packet: " + Integer.toString(seqNumber));
 						// window.WindowSlotCheck(seqNumber);
@@ -167,7 +181,7 @@ public class UdpServerV2 {
 									packet = new Packet(bytes, sendAgain[i]);
 								}
 
-								dgPacket = new DatagramPacket(packet.getBytes(), 1028, resendAdr);
+								dgPacket = new DatagramPacket(packet.getBytes(), 1036, resendAdr);
 								dataSocket.send(dgPacket);
 								break;
 							}
@@ -188,16 +202,8 @@ public class UdpServerV2 {
 						continue;
 					}
 
-					ackCRC= new CRC32();
-					ackCRC.update(clientBytes, 0, 4);
-					byte[] clientAckCRC = new byte[8];
-					System.arraycopy(clientBytes, 4, clientAckCRC, clientAckCRC.length-1 , 8);
-					ByteBuffer crcBuffer = ByteBuffer.allocate(Long.BYTES);
-					crcBuffer.put(clientAckCRC);
-					crcBuffer.flip();
-					long clientCRCVal = crcBuffer.getLong();
-					
-					if(ackCRC.getValue() != clientCRCVal){
+
+                    if(!validateCRC(clientBytes)){
 						System.out.println("ACK corrupted, ignoring");
 						continue;
 					}
@@ -219,15 +225,32 @@ public class UdpServerV2 {
 
 		} catch (Exception e) {
 
+		    e.printStackTrace();
 		}
 
 	}
+
+	boolean validateCRC(byte[] footer){
+
+        CRC32 ackCRC= new CRC32();
+        ackCRC.update(footer, 0, 4);
+        byte[] clientAckCRC = new byte[8];
+        System.arraycopy(footer, 4, clientAckCRC, clientAckCRC.length-1 , 8);
+        ByteBuffer crcBuffer = ByteBuffer.allocate(Long.BYTES);
+        crcBuffer.put(clientAckCRC);
+        crcBuffer.flip();
+        long clientCRCVal = crcBuffer.getLong();
+
+        if (ackCRC.getValue() != clientCRCVal) return false;
+
+	    return true;
+    }
 
 	public static void main(String[] args) {
 
 		try {
 			UdpServerV2 test = new UdpServerV2();
-			test.connect();
+			test.connect(1052);
 			test.awaitRequest();
 
 		} catch (Exception e) {
