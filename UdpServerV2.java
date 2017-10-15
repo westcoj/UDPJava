@@ -189,12 +189,19 @@ public class UdpServerV2 {
 					}
 
 					// Recieve packet from client, runs on timeout
+
 					clientBytes = new byte[12];
 					clientPacket = new DatagramPacket(clientBytes, 12);
-					
+
 
 					try {
 						dataSocket.receive(clientPacket);
+                        AckPacket acknowledgement = new AckPacket(clientBytes);
+                        if (!validateCRC(acknowledgement)) {
+                            System.out.println("CRC mismatch");
+                            continue;
+                        }
+
 
 					} catch (SocketTimeoutException e) {
 						// No packet to recieve now
@@ -244,6 +251,28 @@ public class UdpServerV2 {
         if (ackCRC.getValue() != clientCRCVal) return false;
 
 	    return true;
+    }
+
+    boolean validateCRC(Packet packet){
+	    CRC32 crc = new CRC32();
+	    crc.update(packet.getDataSeq());
+
+	    if (crc.getValue() == packet.getCRC()){
+	        return true;
+        }
+        return false;
+    }
+
+    boolean validateCRC(AckPacket acknowledgement){
+
+	    CRC32 crc = new CRC32();
+        crc.update(acknowledgement.getSeqBytes());
+        System.out.println(crc.getValue());
+        System.out.println(acknowledgement.getCRC());
+        if (crc.getValue() == acknowledgement.getCRC()){
+            return true;
+        }
+        return false;
     }
 
 	public static void main(String[] args) {

@@ -9,12 +9,13 @@ public class AckPacket {
 
     byte[] packet;
     public final int ACKPACKET_SIZE = 12;
+    CRC32 crc;
 
     public AckPacket(int seqNum){
         packet = new byte[ACKPACKET_SIZE];
 
         byte[] seq = ByteBuffer.allocate(4).putInt(seqNum).array();
-        CRC32 crc = new CRC32();
+        crc = new CRC32();
         crc.update(seq);
         //System.out.println(crc.getValue());
 
@@ -28,13 +29,12 @@ public class AckPacket {
 
     }
 
-    public AckPacket(byte[] data) throws Exception{
+    public AckPacket(byte[] data) {
         packet = new byte[ACKPACKET_SIZE];
-        if (data.length != 12){
-            throw new Exception("Data not 12 bytes");
 
-        }
         System.arraycopy(data, 0, packet, 0, 12);
+        crc = new CRC32();
+
 
     }
 
@@ -58,10 +58,19 @@ public class AckPacket {
         return Arrays.copyOfRange(packet, 4, 12);
     }
 
+    public boolean validateCRC(){
+        CRC32 crc2 = new CRC32();
+        crc2.update(Arrays.copyOfRange(packet, 0,packet.length-8));
+        System.out.println(crc2.getValue());
+        System.out.println(getCRC());
+        if (crc.getValue() != crc2.getValue())return false;
+        return true;
+    }
+
     public static void main(String[] args) {
         AckPacket test = new AckPacket(25309521);
 
-        AckPacket test2 = new AckPacket(25309521);
+        AckPacket test2 = new AckPacket(test.getBytes());
 
         System.out.println(test.getSeqNum());
         System.out.println(test.getCRC());

@@ -170,23 +170,10 @@ public class UdpClientV2 {
 				window.WindowCleaner();
 
                 AckPacket ackPacket = new AckPacket(seqNum);
-                byte[] sendAckBytes = ByteBuffer.allocate(4).putInt(seqNum).array();
-
-				//byte[] sendAckBytes = Integer.toString(seqNum).getBytes();
-				ackCRC = new CRC32();
-				ackCRC.update(sendAckBytes);
-
-				byte [] crcBytes = ByteBuffer.allocate(8).putLong(ackCRC.getValue()).array();
-				byte [] acknowledgement = new byte[12];
-				System.arraycopy(sendAckBytes, 0, acknowledgement, 0, 4);
-				System.arraycopy(crcBytes, 0, acknowledgement, 4, 8);
-				//System.arraycopy(crcBytes, 0, sendAckBytes, sendAckBytes.length , 8);
-				int sendAckBytesLen = sendAckBytes.length;
 
 				System.out.println("Acknowledging packet " + Integer.toString(seqNum));
-				// System.out.println(window);
-                  DatagramPacket ackSend = new DatagramPacket(acknowledgement, 12, resendAdr);
-				//DatagramPacket ackSend = new DatagramPacket(sendAckBytes, sendAckBytesLen, resendAdr);
+				System.out.println(window);
+                DatagramPacket ackSend = new DatagramPacket(ackPacket.getBytes(),12,  resendAdr);
 				// System.out.println(ackSend.getAddress());
 
 				dataSocket.send(ackSend);
@@ -215,6 +202,15 @@ public class UdpClientV2 {
 		}
 
 	}
+
+    boolean validateCRC(Packet packet){
+        CRC32 crc = new CRC32();
+        crc.update(packet.getDataSeq());
+        if (crc.getValue() == packet.getCRC()){
+            return true;
+        }
+        return false;
+    }
 
 	public static void main(String[] args) {
 

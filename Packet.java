@@ -78,9 +78,9 @@ public class Packet {
     }
 
     public long getCRC(){
-        //byte[] crcBytes = Arrays.copyOfRange(packet, packet.length - 8, packet.length);
-        //return ByteBuffer.wrap(crcBytes).getLong();
-        return crc.getValue();
+        byte[] crcBytes = Arrays.copyOfRange(packet, packet.length - 8, packet.length);
+        return ByteBuffer.wrap(crcBytes).getLong();
+
     }
     
     //For recieving CRC check
@@ -136,12 +136,21 @@ public class Packet {
         return str;
     }
 
+    public boolean validateCRC(){
+        CRC32 crc2 = new CRC32();
+        crc2.update(Arrays.copyOfRange(packet, 0,packet.length-8));
+        System.out.println(crc2.getValue());
+        System.out.println(getCRC());
+        if (this.getCRC() != crc2.getValue())return false;
+        return true;
+    }
     public static void main(String[] args) {
 
         byte[] thing = new byte[1024];
-        Packet test = new Packet(thing, (byte)1);
-        byte[] thing2 = test.getBytes();
-        System.out.println((char)thing2[0]);
+        Packet test = new Packet(thing,5 );
+
+
+        System.out.println(test.validateCRC());
         System.out.println(test.getSeqNum());
     }
 }
