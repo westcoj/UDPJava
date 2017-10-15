@@ -78,6 +78,11 @@ public class Packet {
     public long getCRC(){
         return crc.getValue();
     }
+    
+    //For recieving CRC check
+    public byte[] getDataSeq(){
+    	return Arrays.copyOf(packet, packet.length-8);
+    }
 
 
 

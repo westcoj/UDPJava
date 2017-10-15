@@ -4,6 +4,7 @@ import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.file.Files;
+import java.util.zip.CRC32;
 
 /**
  * Created by pieterholleman on 10/1/17.
@@ -67,6 +68,7 @@ public class UdpServerV2 {
 		DatagramPacket dgPacket;
 		byte[] clientBytes;
 		DatagramPacket clientPacket;
+		CRC32 ackCRC;
 
 		try {
 
@@ -86,7 +88,7 @@ public class UdpServerV2 {
 				System.out.println("Client Request: " + request);
 
 				//file = new File("/home/mininet/net/server/" + request);
-				file = new File(request);
+				file = new File("E:\\server\\" + request);
 				fileSt = new FileInputStream(file);
 				inputS = new BufferedInputStream(fileSt);
 
@@ -173,8 +175,9 @@ public class UdpServerV2 {
 					}
 
 					// Recieve packet from client, runs on timeout
-					clientBytes = new byte[4];
-					clientPacket = new DatagramPacket(clientBytes, 4);
+					clientBytes = new byte[12];
+					clientPacket = new DatagramPacket(clientBytes, 12);
+					
 
 					try {
 						dataSocket.receive(clientPacket);
@@ -185,6 +188,20 @@ public class UdpServerV2 {
 						continue;
 					}
 
+					ackCRC= new CRC32();
+					ackCRC.update(clientBytes, 0, 4);
+					byte[] clientAckCRC = new byte[8];
+					System.arraycopy(clientBytes, 4, clientAckCRC, clientAckCRC.length-1 , 8);
+					ByteBuffer crcBuffer = ByteBuffer.allocate(Long.BYTES);
+					crcBuffer.put(clientAckCRC);
+					crcBuffer.flip();
+					long clientCRCVal = crcBuffer.getLong();
+					
+					if(ackCRC.getValue() != clientCRCVal){
+						System.out.println("ACK corrupted, ignoring");
+						continue;
+					}
+					
 					String ack = new String(ByteBuffer.wrap(clientBytes).array()).trim();
 					clientAck = Integer.parseInt(ack);
 					System.out.println("Recieved Acknowledgement: " + ack);
