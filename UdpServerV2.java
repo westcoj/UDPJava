@@ -208,7 +208,7 @@ public class UdpServerV2 {
 						continue;
 					}
 					
-					String ack = new String(ByteBuffer.wrap(clientBytes).array()).trim();
+					String ack = new String(ByteBuffer.wrap(clientBytes).array());
 					clientAck = Integer.parseInt(ack);
 					System.out.println("Recieved Acknowledgement: " + ack);
 					window.WindowSlotCheck(clientAck);
@@ -235,7 +235,7 @@ public class UdpServerV2 {
         CRC32 ackCRC= new CRC32();
         ackCRC.update(footer, 0, 4);
         byte[] clientAckCRC = new byte[8];
-        System.arraycopy(footer, 4, clientAckCRC, clientAckCRC.length-1 , 8);
+        System.arraycopy(footer, 4, clientAckCRC, clientAckCRC.length , 8);
         ByteBuffer crcBuffer = ByteBuffer.allocate(Long.BYTES);
         crcBuffer.put(clientAckCRC);
         crcBuffer.flip();

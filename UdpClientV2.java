@@ -22,7 +22,7 @@ public class UdpClientV2 {
 	String ip;
 	String portS;
 	int port;
-	final int PACKET_SIZE = 1028;
+	final int PACKET_SIZE = 1036;
 	CRC32 ackCRC;
 	CRC32 crcCheck;
 
@@ -34,11 +34,11 @@ public class UdpClientV2 {
 
 		while (true) {
 			Scanner scanner = new Scanner(System.in);
-			// System.out.print("Enter an ip address: ");
-			ip = "127.0.0.1";
-			// System.out.print("Enter a port #: ");
-			portS = "1052";
-			// ip = cons.readLine("Enter IP Address (x.x.x.x,args): ");
+			System.out.print("Enter an ip address: ");
+			ip = scanner.nextLine();
+			System.out.print("Enter a port #: ");
+			portS = scanner.nextLine();
+		    // ip = cons.readLine("Enter IP Address (x.x.x.x,args): ");
 			// portS = cons.readLine("Enter port number: ");
 			port = Integer.parseInt(portS);
 			if (portS.matches("[0-9]+")) {
@@ -48,6 +48,21 @@ public class UdpClientV2 {
 		}
 
 	}
+
+	public UdpClientV2(int port, String ip) {
+
+		try {
+			dataChannel = DatagramChannel.open();
+			dataSocket = dataChannel.socket();
+			this.port = port;
+			this.ip = ip;
+		} catch(Exception e){
+			e.printStackTrace();
+		}
+	}
+
+
+
 
 	public void requestFile() throws IOException {
 
@@ -61,7 +76,7 @@ public class UdpClientV2 {
 
 			// First request
 
-			fileName = "hey man.png"; //cons.readLine("Enter file request ");
+			fileName = "jarjar.jpg"; //cons.readLine("Enter file request ");
 			ByteBuffer buf = ByteBuffer.wrap(fileName.getBytes());
 			InetSocketAddress server = new InetSocketAddress(ip, port);
 			System.out.println("Connected");
@@ -113,6 +128,7 @@ public class UdpClientV2 {
 					dataSocket.receive(dgPacket);
 					packet = new Packet(dgPacket.getData());
 					seqNum = packet.getSeqNum();
+
 					String seqNumS = Integer.toString(seqNum);
 					crcCheck = new CRC32();
 					crcCheck.update(packet.getDataSeq());
@@ -123,7 +139,7 @@ public class UdpClientV2 {
 						continue;
 					}
 					
-					//Packet (most likely) not corupted
+					//Packet (most likely) not corrupted
 					else {
 
 						if (window.WindowApprove(seqNum)) {
@@ -142,6 +158,7 @@ public class UdpClientV2 {
 
 				catch (Exception e) {
 					System.out.println("Packet grab error");
+					e.printStackTrace();
 					continue;
 				}
 
@@ -152,17 +169,24 @@ public class UdpClientV2 {
 				// Check slots for recieved items
 				window.WindowCleaner();
 
-				byte[] sendAckBytes = Integer.toString(seqNum).getBytes();
+                AckPacket ackPacket = new AckPacket(seqNum);
+                byte[] sendAckBytes = ByteBuffer.allocate(4).putInt(seqNum).array();
+
+				//byte[] sendAckBytes = Integer.toString(seqNum).getBytes();
 				ackCRC = new CRC32();
 				ackCRC.update(sendAckBytes);
+
 				byte [] crcBytes = ByteBuffer.allocate(8).putLong(ackCRC.getValue()).array();
-				System.arraycopy(crcBytes, 0, sendAckBytes, sendAckBytes.length-1 , 8);
+				byte [] acknowledgement = new byte[12];
+				System.arraycopy(sendAckBytes, 0, acknowledgement, 0, 4);
+				System.arraycopy(crcBytes, 0, acknowledgement, 4, 8);
+				//System.arraycopy(crcBytes, 0, sendAckBytes, sendAckBytes.length , 8);
 				int sendAckBytesLen = sendAckBytes.length;
 
 				System.out.println("Acknowledging packet " + Integer.toString(seqNum));
 				// System.out.println(window);
-
-				DatagramPacket ackSend = new DatagramPacket(sendAckBytes, sendAckBytesLen, resendAdr);
+                  DatagramPacket ackSend = new DatagramPacket(acknowledgement, 12, resendAdr);
+				//DatagramPacket ackSend = new DatagramPacket(sendAckBytes, sendAckBytesLen, resendAdr);
 				// System.out.println(ackSend.getAddress());
 
 				dataSocket.send(ackSend);
@@ -179,7 +203,7 @@ public class UdpClientV2 {
 				k++;
 			}
 
-			System.out.println("FIle successfully written");
+			System.out.println("File successfully written");
 
 			outputS.close();
 			fileSt.close();
@@ -195,7 +219,7 @@ public class UdpClientV2 {
 	public static void main(String[] args) {
 
 		try {
-			UdpClientV2 test = new UdpClientV2();
+			UdpClientV2 test = new UdpClientV2(1052, "127.0.0.1");
 			test.requestFile();
 
 		} catch (Exception e) {

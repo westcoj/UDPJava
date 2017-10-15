@@ -26,6 +26,8 @@ public class Packet {
     //For client recieving use
     public Packet(byte[] data){
     	packet = data;
+    	crc = new CRC32();
+    	crc.update(this.getDataSeq());
     }
 
     public Packet(byte[] segment, int seqNum) {
@@ -76,6 +78,8 @@ public class Packet {
     }
 
     public long getCRC(){
+        //byte[] crcBytes = Arrays.copyOfRange(packet, packet.length - 8, packet.length);
+        //return ByteBuffer.wrap(crcBytes).getLong();
         return crc.getValue();
     }
     
