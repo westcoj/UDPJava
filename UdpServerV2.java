@@ -44,7 +44,7 @@ public class UdpServerV2 {
 				while (true) {
 
 					// parsing/validating port input
-					String portS = ""; // cons.readLine("Enter port number: ");
+					String portS = cons.readLine("Enter port number: ");
 					int port = Integer.parseInt(portS);
 					if (portS.matches("[0-9]+")) {
 						port = Integer.parseInt(portS);
@@ -100,10 +100,10 @@ public class UdpServerV2 {
 				String request = new String(messageBuffer.array()).trim();
 				System.out.println("Client Request: " + request);
 
-				// file = new File("/home/mininet/net/server/" + request);
 				try {
 
-					file = new File("E:\\server\\" + request);
+					//file = new File("E:\\server\\" + request);
+					file = new File("/home/mininet/net/server/" + request);
 					// file = new File(request);
 					fileSt = new FileInputStream(file);
 					inputS = new BufferedInputStream(fileSt);
@@ -118,6 +118,7 @@ public class UdpServerV2 {
 				int numPackets = (int) Math.ceil((double) file.length() / 1024);
 
 				System.out.println("File size: " + test.length);
+				System.out.println(numPackets);
 
 				window = new Window(5, numPackets);
 				int seqNumber = 0;
@@ -133,17 +134,21 @@ public class UdpServerV2 {
 
 					if (window.WindowApprove(seqNumber)) {
 
-						if (((seqNumber + 1) * 1024) >= file.length()) {
+						if (seqNumber >= numPackets-1) { 
+							// (((seqNumber + 1) * 1024) >= file.length()) {
 							packetSize = (int) (file.length() % 1024);
 							bytes = new byte[packetSize];
 							inputS.read(bytes, 0, packetSize);
 							fileBuilder[seqNumber] = bytes;
 							packet = new Packet(bytes, -2);
+							System.out.println("Sending Packet: " + Integer.toString(-2));
 						} else {
+							packetSize = 1024;
 							bytes = new byte[packetSize];
 							inputS.read(bytes, 0, packetSize);
 							fileBuilder[seqNumber] = bytes;
 							packet = new Packet(bytes, seqNumber);
+							System.out.println("Sending Packet: " + Integer.toString(seqNumber));
 
 						}
 
@@ -169,10 +174,11 @@ public class UdpServerV2 {
 						int packSize = packet.getSize(); // For debugging
 						dgPacket = new DatagramPacket(packet.getBytes(), packet.getBytes().length, resendAdr);
 						dataSocket.send(dgPacket);
-						System.out.println("Sending Packet: " + Integer.toString(seqNumber));
 						System.out.println(("Packet CRC: ") + packet.getCRC());
 						// window.WindowSlotCheck(seqNumber);
-						seqNumber++;
+						if (seqNumber < numPackets) {
+							seqNumber++;
+						}
 					}
 
 					// Get packet to resend, window isn't moving
@@ -183,8 +189,9 @@ public class UdpServerV2 {
 								bytes = fileBuilder[sendAgain[i]];
 
 								// Last packet to send
-								if ((sendAgain[i] * 1024) >= file.length() || file.length() <= 1024) {
+								if ((sendAgain[i] * 1024) >= file.length() || file.length() <= 1024 ||sendAgain[i]>=numPackets-1) {
 									packet = new Packet(bytes, -2);
+									System.out.println("Sending Packet Again: " + Integer.toString(-2));
 									// packetSize = (int) (file.length() %
 									// 1024);
 								}
@@ -192,9 +199,12 @@ public class UdpServerV2 {
 								// send the packet
 								else {
 									packet = new Packet(bytes, sendAgain[i]);
+									System.out.println("Sending Packet Again: " + Integer.toString(sendAgain[i]));
 									// packetSize = 1024;
 								}
 
+								
+								System.out.println(("Packet CRC: ") + packet.getCRC());
 								dgPacket = new DatagramPacket(packet.getBytes(), packet.getBytes().length, resendAdr);
 								dataSocket.send(dgPacket);
 								break;
@@ -223,7 +233,7 @@ public class UdpServerV2 {
 						clientAck = acknowledgement.getSeqNum();
 						System.out.println("Recieved Acknowledgement: " + ack);
 						window.WindowSlotCheck(clientAck);
-						System.out.println(window.toString());
+						// System.out.println(window.toString());
 						window.WindowCleaner();
 
 					} catch (SocketTimeoutException e) {
@@ -262,7 +272,7 @@ public class UdpServerV2 {
 		ackCRC.update(footer, 0, 4);
 		byte[] clientAckCRC = new byte[8];
 		System.arraycopy(footer, 4, clientAckCRC, 0, clientAckCRC.length);
-		ByteBuffer crcBuffer = ByteBuffer.allocate(Long.BYTES);
+		ByteBuffer crcBuffer = ByteBuffer.allocate(8);
 		crcBuffer.put(clientAckCRC);
 		crcBuffer.flip();
 		long clientCRCVal = crcBuffer.getLong();
@@ -299,7 +309,8 @@ public class UdpServerV2 {
 
 		try {
 			UdpServerV2 test = new UdpServerV2();
-			test.connect(1052);
+			test.connect();
+			//test.connect(1502);
 			test.awaitRequest();
 
 		} catch (Exception e) {
