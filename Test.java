@@ -9,26 +9,19 @@ import java.util.zip.CRC32;
 public class Test {
 
     public static void main(String[] args) {
-        String message = "asfkjhaksfhigjshfjkdh";
-        Packet stuff = new Packet(message.getBytes(), 15);
-        Packet stuff2 = new Packet(stuff.getBytes());
-
-        byte[] bytes = new byte[12];
-        byte[] seq = ByteBuffer.allocate(4).putInt(100000).array();
-        CRC32 crc = new CRC32();
-        crc.update(seq);
-        System.out.println(crc.getValue());
-        byte[] crcBytes = ByteBuffer.allocate(8).putLong(crc.getValue()).array();
-        System.arraycopy(seq, 0, bytes, 0, 4);
-        System.arraycopy(crcBytes, 0, bytes, 4, 8);
-        System.out.println(ByteBuffer.wrap(crcBytes).getLong());
-        System.out.println(ByteBuffer.wrap(seq).getInt());
-        //        System.out.println(stuff.getCRC());
-//        System.out.println(stuff.toString());
-//        System.out.println(stuff2.getCRC());
-//        System.out.println(stuff.getSeqNum());
-//        System.out.println(stuff2.toString());
-
+    	Window window = new Window(5,15);
+    	System.out.println(window.toString());
+    	window.WindowSlotCheck(10);
+    	System.out.println(window.toString());
+    	window.WindowSlotCheck(0);
+    	window.WindowSlotCheck(1);
+    	window.WindowSlotCheck(3);
+    	window.WindowSlotCheck(4);
+    	System.out.println(window.toString());
+    	window.WindowSlotCheck(5);
+      	System.out.println(window.toString());
+      	window.WindowCleaner();
+      	System.out.println(window.toString());
     }
 
 }

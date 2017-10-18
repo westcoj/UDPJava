@@ -104,7 +104,7 @@ public class UdpServerV2 {
 
 					//file = new File("E:\\server\\" + request);
 					file = new File("/home/mininet/net/server/" + request);
-					// file = new File(request);
+					//file = new File(request);
 					fileSt = new FileInputStream(file);
 					inputS = new BufferedInputStream(fileSt);
 				}
@@ -114,43 +114,57 @@ public class UdpServerV2 {
 					continue;
 				}
 
-				byte[] test = Files.readAllBytes(file.toPath());
 				int numPackets = (int) Math.ceil((double) file.length() / 1024);
-
-				System.out.println("File size: " + test.length);
-				System.out.println(numPackets);
-
 				window = new Window(5, numPackets);
 				int seqNumber = 0;
 				int clientAck = 0;
 				byte[][] fileBuilder = new byte[numPackets][];
+				int lastPacketSize = (int) (file.length() % 1024);
+				byte[] lastFileBytes = new byte[lastPacketSize];
+				int packetSize = 1024;
+				
+				System.out.println("# of packets: " + numPackets);
+				System.out.println("Last packet size: " + lastPacketSize);
 
 				fileBuffer = ByteBuffer.wrap(String.valueOf(file.length()).getBytes());
 				dataChannel.send(fileBuffer, resendAdr);
-
-				int packetSize = 1024;
+				boolean finish = false;
 				// File sending loop, -2 is last packet acknowledgement.
-				while (clientAck != -2) {
+				while (!finish) {
 
 					if (window.WindowApprove(seqNumber)) {
-
-						if (seqNumber >= numPackets-1) { 
-							// (((seqNumber + 1) * 1024) >= file.length()) {
-							packetSize = (int) (file.length() % 1024);
-							bytes = new byte[packetSize];
-							inputS.read(bytes, 0, packetSize);
-							fileBuilder[seqNumber] = bytes;
+						if(window.WindowApprove(-2)){
+							bytes = new byte[lastPacketSize];
+							inputS.read(bytes, 0, lastPacketSize);
+							lastFileBytes = bytes;
 							packet = new Packet(bytes, -2);
-							System.out.println("Sending Packet: " + Integer.toString(-2));
-						} else {
-							packetSize = 1024;
+							System.out.println("Sending Packet: " + Integer.toString(-2) + " |Size: " + packet.getSize() + " |should be: " + (lastPacketSize+12));
+							
+						} 
+						else{
 							bytes = new byte[packetSize];
 							inputS.read(bytes, 0, packetSize);
 							fileBuilder[seqNumber] = bytes;
 							packet = new Packet(bytes, seqNumber);
-							System.out.println("Sending Packet: " + Integer.toString(seqNumber));
-
+							System.out.println("Sending Packet: " + Integer.toString(seqNumber) + " |Size: " + packet.getSize());
 						}
+//
+//						if (((seqNumber + 1) * 1024) >= file.length()) {
+//							packetSize = (int) (file.length() % 1024);
+//							bytes = new byte[packetSize];
+//							inputS.read(bytes, 0, packetSize);
+//							fileBuilder[seqNumber] = bytes;
+//							packet = new Packet(bytes, -2);
+//							System.out.println("Sending Packet: " + Integer.toString(-2));
+//						} else {
+//							packetSize = 1024;
+//							bytes = new byte[packetSize];
+//							inputS.read(bytes, 0, packetSize);
+//							fileBuilder[seqNumber] = bytes;
+//							packet = new Packet(bytes, seqNumber);
+//							System.out.println("Sending Packet: " + Integer.toString(seqNumber));
+//
+//						}
 
 						// System.out.println(packet.toString());
 						// bytes = new byte[packetSize];
@@ -171,12 +185,10 @@ public class UdpServerV2 {
 						// packet = new Packet(bytes, seqNumber);
 						// }
 
-						int packSize = packet.getSize(); // For debugging
 						dgPacket = new DatagramPacket(packet.getBytes(), packet.getBytes().length, resendAdr);
 						dataSocket.send(dgPacket);
 						System.out.println(("Packet CRC: ") + packet.getCRC());
-						// window.WindowSlotCheck(seqNumber);
-						if (seqNumber < numPackets) {
+						if (seqNumber < numPackets-1) {
 							seqNumber++;
 						}
 					}
@@ -186,21 +198,21 @@ public class UdpServerV2 {
 						int sendAgain[] = window.getSlotsRemaining();
 						for (int i = 0; i < sendAgain.length; i++) {
 							if (sendAgain[i] != -1) {
-								bytes = fileBuilder[sendAgain[i]];
+								//bytes = fileBuilder[sendAgain[i]];
 
 								// Last packet to send
-								if ((sendAgain[i] * 1024) >= file.length() || file.length() <= 1024 ||sendAgain[i]>=numPackets-1) {
+								if (window.WindowApprove(-2)) {
+									bytes = new byte[lastPacketSize];
+									bytes = lastFileBytes;
 									packet = new Packet(bytes, -2);
-									System.out.println("Sending Packet Again: " + Integer.toString(-2));
-									// packetSize = (int) (file.length() %
-									// 1024);
+									System.out.println("Sending Packet Again: " + Integer.toString(-2)+ " |Size: " + packet.getSize() + "|should be| " + (lastPacketSize+12));
 								}
-
 								// send the packet
 								else {
+									bytes = new byte[1024];
+									bytes = fileBuilder[sendAgain[i]];
 									packet = new Packet(bytes, sendAgain[i]);
-									System.out.println("Sending Packet Again: " + Integer.toString(sendAgain[i]));
-									// packetSize = 1024;
+									System.out.println("Sending Packet Again: " + Integer.toString(sendAgain[i])+ " |Size: " + packet.getSize());
 								}
 
 								
@@ -227,14 +239,19 @@ public class UdpServerV2 {
 							continue;
 						}
 
-						// String ack = new
-						// String(ByteBuffer.wrap(acknowledgement.getSeqBytes()).array());
 						String ack = String.valueOf(acknowledgement.getSeqNum());
 						clientAck = acknowledgement.getSeqNum();
 						System.out.println("Recieved Acknowledgement: " + ack);
+						
+						if(clientAck == -2){
+							clientAck = numPackets-1;
+							finish = true;
+						}
+						
 						window.WindowSlotCheck(clientAck);
-						// System.out.println(window.toString());
+						System.out.println(window.toString());
 						window.WindowCleaner();
+						System.out.println(window.toString());
 
 					} catch (SocketTimeoutException e) {
 						// No packet to recieve now
@@ -297,8 +314,8 @@ public class UdpServerV2 {
 
 		CRC32 crc = new CRC32();
 		crc.update(acknowledgement.getSeqBytes());
-		System.out.println(crc.getValue());
-		System.out.println(acknowledgement.getCRC());
+		System.out.println("Server CRC: " + crc.getValue());
+		System.out.println("AckPacket CRC: " + acknowledgement.getCRC());
 		if (crc.getValue() == acknowledgement.getCRC()) {
 			return true;
 		}

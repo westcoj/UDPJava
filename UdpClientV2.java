@@ -6,6 +6,7 @@ import java.net.InetSocketAddress;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
+import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.zip.CRC32;
 
@@ -26,6 +27,7 @@ public class UdpClientV2 {
 	CRC32 ackCRC;
 	CRC32 crcCheck;
 	CRC32 crcServer;
+	ArrayList<Integer> recieved;
 
 	public UdpClientV2() throws IOException {
 
@@ -74,7 +76,7 @@ public class UdpClientV2 {
 
 			// First request
 
-			fileName = "hey man.png"; // cons.readLine("Enter file request ");
+			fileName = "heyman.png"; // cons.readLine("Enter file request ");
 			ByteBuffer buf = ByteBuffer.wrap(fileName.getBytes());
 			InetSocketAddress server = new InetSocketAddress(ip, port);
 			System.out.println("Connected");
@@ -100,18 +102,23 @@ public class UdpClientV2 {
 			Window window = new Window(5, numPackets);
 			int finalPacketSize = (int) (fileSize % 1024) + 12;
 			int seqNum;
+			boolean finish = false;
+			recieved = new ArrayList<Integer>();
 
 			// Start recieving
-			while (bytesRead < fileSize) {
+			while (!finish) {
 
 				// byte[] fileBytes = new byte[1028];
 				DatagramPacket dgPacket;
 				byte[] fileBytes;
 
-				//Needs to be changed if packets are coming out of order. Either that or set reciever to take only next packet
-				//Use an arraylist to keep track of acknowledged numbers and only take last packet if everything else is gotten?
-				//Basically the problem is that the last packet is using a size too big and the crc/seq number get messed up
-				if (fileSize - bytesRead <= 1024) {
+				// Needs to be changed if packets are coming out of order.
+				// Either that or set reciever to take only next packet
+				// Use an arraylist to keep track of acknowledged numbers
+				// and only take last packet if everything else is gotten?
+				// Basically the problem is that the last packet is using a size
+				// too big and the crc/seq number get messed up
+				if (window.WindowApprove(-2)) {
 					fileBytes = new byte[finalPacketSize];
 					dgPacket = new DatagramPacket(fileBytes, finalPacketSize);
 				}
@@ -133,8 +140,12 @@ public class UdpClientV2 {
 					String seqNumS = Integer.toString(seqNum);
 					crcCheck = new CRC32();
 					crcCheck.update(packet.getDataSeq());
+					System.out.println("Recieved Packet: " + seqNum + "| Size: " + packet.getSize());
 					System.out.println("Packet CRC: " + packet.getCRC());
 					System.out.println("Client CRC: " + crcCheck.getValue());
+					if (seqNum == -2) {
+						System.out.println("Last packet, size should be: " + finalPacketSize);
+					}
 
 					// Packet corrupted
 					if (crcCheck.getValue() != packet.getCRC()) {
@@ -145,20 +156,59 @@ public class UdpClientV2 {
 					// Packet (most likely) not corrupted
 					else {
 
-						if (window.WindowApprove(seqNum)) {
+						if (seqNum == -2) {
+							if (window.WindowApprove(-2)) {
+								fileBuilder[numPackets - 1] = packet.getData();
+
+								window.WindowSlotCheck(numPackets - 1);
+								System.out.println(window.toString());
+								window.WindowCleaner();
+								System.out.println(window.toString());
+								System.out.println("Acknowledgirg last packet " + Integer.toString(seqNum));
+
+								AckPacket ackPacket = new AckPacket(seqNum);
+								System.out.println("Ack CRC: " + ackPacket.getCRC());
+								DatagramPacket ackSend = new DatagramPacket(ackPacket.getBytes(), 12, resendAdr);
+								dataSocket.send(ackSend);
+								finish = true;
+								recieved.add(numPackets - 1);
+							}
+						} else if (window.WindowApprove(seqNum)) {
+
 							fileBuilder[seqNum] = packet.getData();
-							bytesRead += 1024;
 							window.WindowSlotCheck(seqNum);
+							System.out.println(window.toString());
+							window.WindowCleaner();
+							System.out.println(window.toString());
+
+							AckPacket ackPacket = new AckPacket(seqNum);
+
+							System.out.println("Acknowledging packet " + Integer.toString(seqNum));
+							// System.out.println(window);
+							System.out.println("Ack CRC: " + ackPacket.getCRC());
+							DatagramPacket ackSend = new DatagramPacket(ackPacket.getBytes(), 12, resendAdr);
+							// System.out.println(ackSend.getAddress());
+
+							dataSocket.send(ackSend);
+							recieved.add(seqNum);
+							// window.WindowSlotCheck(seqNum);
 						}
 
-						// Last packet handler
-						else if (seqNum == -2) {
-							if (fileBuilder[numPackets - 1] != null) {
-								fileBuilder[numPackets - 1] = packet.getData();
-								bytesRead += finalPacketSize;
-							}
-							// bytesRead = fileSize;
+						if (recieved.contains(seqNum)) {
+							AckPacket ackPacket = new AckPacket(seqNum);
+
+							System.out.println("Acknowledging packet " + Integer.toString(seqNum));
+							// System.out.println(window);
+							System.out.println("Ack CRC: " + ackPacket.getCRC());
+							DatagramPacket ackSend = new DatagramPacket(ackPacket.getBytes(), 12, resendAdr);
+							// System.out.println(ackSend.getAddress());
+
+							dataSocket.send(ackSend);
 						}
+						// Last packet handler
+
+						// bytesRead = fileSize;
+
 					}
 				}
 
@@ -168,28 +218,11 @@ public class UdpClientV2 {
 					continue;
 				}
 
-				System.out.println("Sequence number " + packet.getSeqNum());
-				// System.out.println(packet.toString());
-				// Is packet recieved in window?
-
-				// Check slots for recieved items
-				window.WindowCleaner();
-
-				AckPacket ackPacket = new AckPacket(seqNum);
-
-				System.out.println("Acknowledging packet " + Integer.toString(seqNum));
-				// System.out.println(window);
-				System.out.println("Ack CRC: " + ackPacket.getCRC());
-				DatagramPacket ackSend = new DatagramPacket(ackPacket.getBytes(), 12, resendAdr);
-				// System.out.println(ackSend.getAddress());
-
-				dataSocket.send(ackSend);
-
 			} // Stop recieving file
 
 			File file = new File("/home/mininet/net/client/" + fileName);
 			// File file = new File("out.jpg");
-			//File file = new File("E:\\client\\" + fileName);
+			// File file = new File("E:\\client\\" + fileName);
 			fileSt = new FileOutputStream(file);
 			outputS = new BufferedOutputStream(fileSt);
 			int k = 0;
@@ -224,7 +257,7 @@ public class UdpClientV2 {
 
 		try {
 			UdpClientV2 test = new UdpClientV2();
-			//UdpClientV2 test = new UdpClientV2(1502,"127.0.0.1");
+			// UdpClientV2 test = new UdpClientV2(1502, "127.0.0.1");
 			test.requestFile();
 
 		} catch (Exception e) {
