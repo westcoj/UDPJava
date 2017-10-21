@@ -5,6 +5,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.file.Files;
 import java.util.zip.CRC32;
+import java.util.Scanner;
 
 /**
  * Created by pieterholleman on 10/1/17.
@@ -15,6 +16,7 @@ public class UdpServerV2 {
 	private DatagramSocket dataSocket;
 	private Window window;
 	Console cons;
+	Scanner scanner = new Scanner(System.in);
 
 	public UdpServerV2() throws IOException {
 
@@ -44,7 +46,8 @@ public class UdpServerV2 {
 				while (true) {
 
 					// parsing/validating port input
-					String portS = cons.readLine("Enter port number: ");
+					//String portS = cons.readLine("Enter port number: ");
+					String portS = scanner.nextLine().trim();
 					int port = Integer.parseInt(portS);
 					if (portS.matches("[0-9]+")) {
 						port = Integer.parseInt(portS);
@@ -103,8 +106,8 @@ public class UdpServerV2 {
 				try {
 
 					//file = new File("E:\\server\\" + request);
-					file = new File("/home/mininet/net/server/" + request);
-					//file = new File(request);
+					//file = new File("/home/mininet/net/server/" + request);
+					file = new File(request);
 					fileSt = new FileInputStream(file);
 					inputS = new BufferedInputStream(fileSt);
 				}

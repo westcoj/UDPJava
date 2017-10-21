@@ -36,14 +36,14 @@ public class UdpClientV2 {
 		cons = System.console();
 
 		while (true) {
-			// Scanner scanner = new Scanner(System.in);
-			// System.out.println("Enter an ip address: ");
-			// ip = scanner.nextLine();
-			// System.out.println("Enter a port #: ");
-			// portS = scanner.nextLine();
-			ip = cons.readLine("Enter IP Address (x.x.x.x,args): ");
-			portS = cons.readLine("Enter port number: ");
-			port = Integer.parseInt(portS);
+			 Scanner scanner = new Scanner(System.in);
+			 System.out.println("Enter an ip address: ");
+			 ip = scanner.nextLine();
+			 System.out.println("Enter a port #: ");
+			 portS = scanner.nextLine();
+			//ip = cons.readLine("Enter IP Address (x.x.x.x,args): ");
+			//portS = cons.readLine("Enter port number: ");
+			//port = Integer.parseInt(portS);
 			if (portS.matches("[0-9]+")) {
 				port = Integer.parseInt(portS);
 				break;
@@ -76,7 +76,7 @@ public class UdpClientV2 {
 
 			// First request
 
-			fileName = "heyman.png"; // cons.readLine("Enter file request ");
+			fileName = "jarjar.jpg"; // cons.readLine("Enter file request ");
 			ByteBuffer buf = ByteBuffer.wrap(fileName.getBytes());
 			InetSocketAddress server = new InetSocketAddress(ip, port);
 			System.out.println("Connected");
@@ -220,8 +220,8 @@ public class UdpClientV2 {
 
 			} // Stop recieving file
 
-			File file = new File("/home/mininet/net/client/" + fileName);
-			// File file = new File("out.jpg");
+			//File file = new File("/home/mininet/net/client/" + fileName);
+			File file = new File("out.jpg");
 			// File file = new File("E:\\client\\" + fileName);
 			fileSt = new FileOutputStream(file);
 			outputS = new BufferedOutputStream(fileSt);
