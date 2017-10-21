@@ -164,7 +164,7 @@ public class UdpClientV2 {
 								System.out.println(window.toString());
 								window.WindowCleaner();
 								System.out.println(window.toString());
-								System.out.println("Acknowledgirg last packet " + Integer.toString(seqNum));
+								System.out.println("Acknowledging last packet " + Integer.toString(seqNum));
 
 								AckPacket ackPacket = new AckPacket(seqNum);
 								System.out.println("Ack CRC: " + ackPacket.getCRC());
@@ -221,7 +221,7 @@ public class UdpClientV2 {
 			} // Stop recieving file
 
 			//File file = new File("/home/mininet/net/client/" + fileName);
-			File file = new File("./out.jpg");
+			File file = new File("out2.jpg");
 			// File file = new File("E:\\client\\" + fileName);
 			fileSt = new FileOutputStream(file);
 			outputS = new BufferedOutputStream(fileSt);
