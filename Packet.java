@@ -143,7 +143,7 @@ public class Packet {
 
     public boolean validateCRC(){
         CRC32 crc2 = new CRC32();
-        crc2.update(Arrays.copyOfRange(packet, 0,packet.length-8));
+        crc2.update(this.getDataSeq());
         System.out.println(crc2.getValue());
         System.out.println(getCRC());
         if (this.getCRC() != crc2.getValue())return false;

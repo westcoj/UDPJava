@@ -27,6 +27,7 @@ public class UdpServerV2 {
 
 	}
 
+
 	public boolean connect(int port) {
 
 		try {
@@ -39,28 +40,29 @@ public class UdpServerV2 {
 		}
 	}
 
+
+
 	public boolean connect() {
 
 		while (true) {
 			try {
-				while (true) {
 
-					// parsing/validating port input
-					//String portS = cons.readLine("Enter port number: ");
-					String portS = scanner.nextLine().trim();
-					int port = Integer.parseInt(portS);
-					if (portS.matches("[0-9]+")) {
-						port = Integer.parseInt(portS);
-					} else if (portS.equals("exit")) {
-						System.exit(0);
-					} else {
-						continue;
-					}
 
-					dataSocket.bind(new InetSocketAddress(port));
-					return true;
-
+				// parsing/validating port input
+				//String portS = cons.readLine("Enter port number: ");
+				System.out.print("Enter a port number: ");
+				String portS = scanner.nextLine().trim();
+				int port = Integer.parseInt(portS);
+				if (portS.matches("[0-9]+")) {
+					port = Integer.parseInt(portS);
+				} else if (portS.equals("exit")) {
+					System.exit(0);
+				} else {
+					continue;
 				}
+
+				dataSocket.bind(new InetSocketAddress(port));
+				return true;
 
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -75,6 +77,7 @@ public class UdpServerV2 {
 		File file;
 		FileInputStream fileSt;
 		BufferedInputStream inputS;
+
 		byte[] bytes;
 		ByteBuffer messageBuffer;
 		ByteBuffer fileBuffer;
@@ -88,20 +91,47 @@ public class UdpServerV2 {
 
 		try {
 
+			System.out.println("Awaiting file request");
+
 			while (true) {
 
-				System.out.println("Awaiting file request");
+
 				int fileSize = 0;
 
+				/**/
+				byte[] requestBytes = new byte[1036];
+				DatagramPacket fileRequestDatagram = new DatagramPacket(requestBytes, requestBytes.length);
+
+				try {
+					dataSocket.receive(fileRequestDatagram);
+					resendAdr = fileRequestDatagram.getSocketAddress();
+
+				} catch (Exception e){
+					continue;
+				}
+
+				byte[] recievedRequestBytes = new byte[fileRequestDatagram.getLength()];
+				System.arraycopy(
+						fileRequestDatagram.getData(),
+						fileRequestDatagram.getOffset(),
+						recievedRequestBytes,
+						0,
+						fileRequestDatagram.getLength()
+				);
+
+				Packet requestPacket = new Packet(recievedRequestBytes);
+				String request = new String(requestPacket.getData(), "UTF-8");
+				System.out.println("Client Request: " + request);
+
+				/**/
 				// buffer to get client's command
-				messageBuffer = ByteBuffer.allocate(256);
+				//messageBuffer = ByteBuffer.allocate(256);
 
 				// get address of client
-				resendAdr = dataChannel.receive(messageBuffer);
+				//resendAdr = dataChannel.receive(messageBuffer);
 
 				// Decode message
-				String request = new String(messageBuffer.array()).trim();
-				System.out.println("Client Request: " + request);
+
 
 				try {
 
@@ -125,12 +155,20 @@ public class UdpServerV2 {
 				int lastPacketSize = (int) (file.length() % 1024);
 				byte[] lastFileBytes = new byte[lastPacketSize];
 				int packetSize = 1024;
+
+			 	byte[] fileSizeBytes = ByteBuffer.allocate(84).putLong(file.length()).array();
+				Packet fileSizePacket = new Packet(fileSizeBytes, -4);
+				DatagramPacket fileSizeDatagram = new DatagramPacket(fileSizePacket.getData(), fileSizePacket.getData().length);
+				dataChannel.connect(resendAdr);
+				dataSocket.send(fileSizeDatagram);
 				
 				System.out.println("# of packets: " + numPackets);
 				System.out.println("Last packet size: " + lastPacketSize);
 
+
+
 				fileBuffer = ByteBuffer.wrap(String.valueOf(file.length()).getBytes());
-				dataChannel.send(fileBuffer, resendAdr);
+				//dataChannel.send(fileBuffer, resendAdr);
 				boolean finish = false;
 				// File sending loop, -2 is last packet acknowledgement.
 				while (!finish) {
