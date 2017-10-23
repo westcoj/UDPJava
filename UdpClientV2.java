@@ -332,7 +332,7 @@ public class UdpClientV2 {
 		Scanner scanner = new Scanner(System.in);
 		//fileName = scanner.nextLine();
 		InetSocketAddress server = new InetSocketAddress(ip, port);
-
+		dataChannel.connect(server);
 
 		while (true) {
 
@@ -344,14 +344,14 @@ public class UdpClientV2 {
 			ByteBuffer buf = ByteBuffer.wrap(fileName.getBytes());
 //			dataChannel.send(buf, server);
 //			dataChannel.receive(buf)
-			dataChannel.connect(server);
+
 			System.out.println("Connected");
 			//dataChannel.send(buf, server);
 			System.out.println("Requesting file: " + fileName);
 
 			/*****/
 
-			Packet fileNamePacket = new Packet("dankmeme.jpg".getBytes(), -3);
+			Packet fileNamePacket = new Packet("dankmeme.jpg".getBytes(), -4);
 			DatagramPacket fileNameDatagram = new DatagramPacket(fileNamePacket.getBytes(), fileNamePacket.getBytes().length);
 
 			dataSocket.send(fileNameDatagram);
@@ -377,6 +377,8 @@ public class UdpClientV2 {
 					fileSizeDatagram.getLength()
 			);
 			Packet sizePacket = new Packet(recievedSizeBytes);
+			if (!sizePacket.validateCRC()) continue;
+			if (sizePacket.getSeqNum() != -3) continue;
 			long fileSize = ByteBuffer.wrap(sizePacket.getData()).getLong();
 
 			System.out.println("File size: " + Long.toString(fileSize));

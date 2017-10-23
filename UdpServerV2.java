@@ -120,6 +120,8 @@ public class UdpServerV2 {
 				);
 
 				Packet requestPacket = new Packet(recievedRequestBytes);
+				if (!requestPacket.validateCRC()) continue;
+				if (requestPacket.getSeqNum() != -4) continue;
 				String request = new String(requestPacket.getData(), "UTF-8");
 				System.out.println("Client Request: " + request);
 
@@ -156,10 +158,13 @@ public class UdpServerV2 {
 				byte[] lastFileBytes = new byte[lastPacketSize];
 				int packetSize = 1024;
 
-			 	byte[] fileSizeBytes = ByteBuffer.allocate(84).putLong(file.length()).array();
-				Packet fileSizePacket = new Packet(fileSizeBytes, -4);
-				DatagramPacket fileSizeDatagram = new DatagramPacket(fileSizePacket.getData(), fileSizePacket.getData().length);
+			 	byte[] fileSizeBytes = ByteBuffer.allocate(8).putLong(file.length()).array();
+				Packet fileSizePacket = new Packet(fileSizeBytes, -3);
+				DatagramPacket fileSizeDatagram = new DatagramPacket(fileSizePacket.getBytes(), fileSizePacket.getBytes().length);
 				dataChannel.connect(resendAdr);
+
+
+
 				dataSocket.send(fileSizeDatagram);
 				
 				System.out.println("# of packets: " + numPackets);
