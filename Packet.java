@@ -6,9 +6,15 @@ import java.util.Arrays;
 import java.nio.ByteBuffer;
 import java.util.zip.CRC32;
 
-/**
- * Created by pieterholleman on 9/29/17.
- */
+/**************************************************************************************
+ * The following class takes in bytes and creates a packet to be sent across a
+ * datagram. A crc and seq number are added into the bytes that are sent. This can 
+ * then be easily deconstrcuted by the reciever into appropriate parts. 
+ * 
+ * @author Cody West|Peter Holleman
+ * @version Project 2 UDP
+ * @date 10/20/2017
+ *************************************************************************************/
 public class Packet {
 
 
